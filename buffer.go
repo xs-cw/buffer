@@ -54,7 +54,7 @@ func (b *Buffer) Buf(k string, f MakeFunc) (interface{}, time.Time, error) {
 
 	i, t, e := val.Value()
 	if t.Before(time.Now()) {
-		b.fork.Puah(func() {
+		b.fork.Push(func() {
 			val.Flash()
 		})
 		b.fork.Join()

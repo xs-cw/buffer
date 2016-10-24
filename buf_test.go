@@ -14,7 +14,7 @@ func TestA(t *testing.T) {
 	fo := fork.NewFork(100)
 	i := 0
 	for ; i != 100; i++ {
-		fo.Puah(func() {
+		fo.Push(func() {
 			b, _, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
 				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
 			})
@@ -25,7 +25,7 @@ func TestA(t *testing.T) {
 	<-time.After(time.Second)
 	ffmt.Mark(i)
 	for ; i != 200; i++ {
-		fo.Puah(func() {
+		fo.Push(func() {
 			b, _, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
 				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
 			})
