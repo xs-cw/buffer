@@ -37,8 +37,9 @@ func (b *Buffer) init(k string, f MakeFunc) (*Node, bool) {
 	bb := false
 	if b.Buff[k] == nil {
 		bb = true
-		b.Buff[k] = NewNode(f)
+		b.Buff[k] = NewNode()
 	}
+	b.Buff[k].Func = f
 	return b.Buff[k], bb
 }
 
@@ -49,22 +50,17 @@ func (b *Buffer) Buf(k string, f MakeFunc) (interface{}, time.Time, error) {
 	if f == nil {
 		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
 	}
-	val, bb := b.init(k, f)
-	if bb {
-		val.Flash()
-	}
+	val, _ := b.init(k, f)
 
 	i, t, e := val.Value()
 	if t.Before(time.Now()) {
 		b.fork.Puah(func() {
 			val.Flash()
 		})
-	}
-
-	if i == nil {
 		b.fork.Join()
-		i, t, e = val.Value()
+		if i == nil {
+			i, t, e = val.Value()
+		}
 	}
-
 	return i, t, e
 }

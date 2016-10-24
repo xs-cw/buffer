@@ -17,10 +17,9 @@ type Node struct {
 	mut     sync.Mutex
 }
 
-func NewNode(f MakeFunc) *Node {
+func NewNode() *Node {
 	return &Node{
 		Timeout: time.Unix(0, 0),
-		Func:    f,
 	}
 }
 
