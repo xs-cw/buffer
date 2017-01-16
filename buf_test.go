@@ -15,10 +15,10 @@ func TestA(t *testing.T) {
 	i := 0
 	for ; i != 100; i++ {
 		fo.Push(func() {
-			b, _, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
+			b, t, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
 				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
 			})
-			ffmt.Mark(b, err)
+			ffmt.Mark(b, t, err)
 		})
 	}
 	ffmt.Mark(i)
@@ -26,10 +26,10 @@ func TestA(t *testing.T) {
 	ffmt.Mark(i)
 	for ; i != 200; i++ {
 		fo.Push(func() {
-			b, _, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
+			b, t, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
 				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
 			})
-			ffmt.Mark(b, err)
+			ffmt.Mark(b, t, err)
 		})
 	}
 	ffmt.Mark(i)

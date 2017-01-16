@@ -5,19 +5,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wzshiming/fork"
+	"github.com/wzshiming/task"
 )
 
 type Buffer struct {
 	Mut  sync.Mutex
 	Buff map[string]*Node
-	fork *fork.Fork
+	task *task.Task
 }
 
 func NewBuffer() *Buffer {
 	return &Buffer{
 		Buff: map[string]*Node{},
-		fork: fork.NewFork(2),
+		task: task.NewTaskBuf(1, 1024),
 	}
 }
 
@@ -46,21 +46,27 @@ func (b *Buffer) init(k string, f MakeFunc) (*Node, bool) {
 // Buf 缓存数据
 //  k:   缓存键
 //  f:   缓存执行的动作
-func (b *Buffer) Buf(k string, f MakeFunc) (interface{}, time.Time, error) {
+func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error) {
 	if f == nil {
 		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
 	}
-	val, _ := b.init(k, f)
-
-	i, t, e := val.Value()
-	if t.Before(time.Now()) {
-		b.fork.Push(func() {
-			val.Flash()
-		})
-		b.fork.Join()
-		if i == nil {
-			i, t, e = val.Value()
+	val, bb := b.init(k, f)
+	if !bb {
+		i, t, e = val.Value()
+		if t.After(time.Now()) {
+			return i, t, e
 		}
+	}
+
+	ok, e := val.Flash()
+	if e != nil {
+		return nil, time.Time{}, e
+	}
+	if !ok {
+		i, t, e = val.Value()
+		b.task.Add(t, func() {
+			b.Del(k)
+		})
 	}
 	return i, t, e
 }
