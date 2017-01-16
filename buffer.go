@@ -17,7 +17,7 @@ type Buffer struct {
 func NewBuffer() *Buffer {
 	return &Buffer{
 		Buff: map[string]*Node{},
-		task: task.NewTaskBuf(1, 1024),
+		task: task.NewTaskBuf(16, 1024),
 	}
 }
 
