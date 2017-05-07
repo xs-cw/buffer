@@ -1,41 +1,34 @@
 package buffer
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/wzshiming/ffmt"
-	"github.com/wzshiming/fork"
+	"github.com/wzshiming/task"
 )
 
 func TestA(t *testing.T) {
 	buf := NewBuffer()
-	fo := fork.NewFork(100)
+	fo := task.NewTask(100)
 	i := 0
+	uc := 0
+	pc := 0
 	for ; i != 100; i++ {
-		fo.Push(func() {
+		cc := time.Second / 50 * (time.Duration(i) / 2)
+		fo.Add(time.Now().Add(cc), func() {
 			b, t, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
-				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
+				v, t := time.Now(), time.Now().Add(time.Second/10)
+				ffmt.Mark("update key", v, t)
+				uc++
+				return v, t, nil
 			})
-			ffmt.Mark(b, t, err)
+			pc++
+			now := time.Now()
+			ffmt.Mark(now.Sub(b.(time.Time)), t.Sub(now), err)
 		})
 	}
-	ffmt.Mark(i)
-	<-time.After(time.Second)
-	ffmt.Mark(i)
-	for ; i != 200; i++ {
-		fo.Push(func() {
-			b, t, err := buf.Buf("hello", func() (interface{}, time.Time, error) {
-				return "world " + fmt.Sprint(time.Now()), time.Now().Add(time.Second / 2), nil
-			})
-			ffmt.Mark(b, t, err)
-		})
-	}
-	ffmt.Mark(i)
-	<-time.After(time.Second)
-	//	for {
-	//		//ffmt.Puts(buf)
-	//		runtime.Gosched()
-	//	}
+
+	fo.Join()
+	ffmt.Mark(uc, pc)
 }
