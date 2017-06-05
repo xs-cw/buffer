@@ -55,9 +55,9 @@ func (n *Node) Flash() (bool, error) {
 	if !n.IsValid() {
 		err := n.Update()
 		if err != nil {
-			return true, nil
+			return false, err
 		}
-		return false, err
+		return true, nil
 	}
 	return false, nil
 }
