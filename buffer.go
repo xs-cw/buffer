@@ -31,14 +31,21 @@ func (b *Buffer) Del(k string) {
 
 // init 初始化缓存数据
 //  k:   缓存键
-func (b *Buffer) getNode(k string, f MakeFunc) (*Node, bool) {
+func (b *Buffer) getNode(k string, f MakeFunc) *Node {
 	b.Mut.Lock()
 	defer b.Mut.Unlock()
 	if b.Buff[k] == nil {
-		b.Buff[k] = NewNode(f)
-		return b.Buff[k], true
+		t := NewNode(f)
+		t.Update()
+		b.Buff[k] = t
+		if !t.timeout.IsZero() {
+			b.task.Add(t.timeout, func() {
+				b.Del(k)
+			})
+		}
+		return t
 	}
-	return b.Buff[k], false
+	return b.Buff[k]
 }
 
 // Buf 缓存数据
@@ -48,16 +55,7 @@ func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error)
 	if f == nil {
 		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
 	}
-	val, bb := b.getNode(k, f)
-	i, t, e = val.Value()
-	if e != nil {
-		return
-	}
-	if bb {
-		b.task.Add(t, func() {
-			b.Del(k)
-		})
-	}
+	val := b.getNode(k, f)
 
-	return
+	return val.Value()
 }
