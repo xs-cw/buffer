@@ -8,44 +8,56 @@ import (
 
 type MakeFunc func() (interface{}, time.Time, error)
 
-var node = struct{}{}
-
 type Node struct {
-	Timeout time.Time   // 过期
-	Data    interface{} // 缓存数据
-	Func    MakeFunc    // 更新缓存
-	mut     sync.Mutex
+	timeout time.Time   // 过期
+	data    interface{} // 缓存数据
+	fun     MakeFunc    // 更新缓存
+	mut     sync.RWMutex
 }
 
-func NewNode() *Node {
-	return &Node{
-		Timeout: time.Unix(0, 0),
+func NewNode(f MakeFunc) *Node {
+	n := &Node{
+		timeout: time.Unix(0, 0),
+		fun:     f,
 	}
+	n.Update()
+	return n
 }
 
-// 是有效的
+// IsValid 数据是有效的
 func (n *Node) IsValid() bool {
-	n.mut.Lock()
-	defer n.mut.Unlock()
-	return n.Timeout.After(time.Now())
+	n.mut.RLock()
+	defer n.mut.RUnlock()
+	return n.timeout.After(time.Now())
+}
+
+// Latest 最新的缓存数据
+func (n *Node) Latest() (interface{}, time.Time, error) {
+	if n.IsValid() {
+		return n.Value()
+	}
+	err := n.Update()
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	return n.Value()
 }
 
 // Value 数据
 func (n *Node) Value() (interface{}, time.Time, error) {
-	n.mut.Lock()
-	defer n.mut.Unlock()
-	return n.Data, n.Timeout, nil
+	n.mut.RLock()
+	defer n.mut.RUnlock()
+	return n.data, n.timeout, nil
 }
 
 // Update 更新数据
 func (n *Node) Update() error {
 	n.mut.Lock()
 	defer n.mut.Unlock()
-
-	d, t, err := n.Func()
+	d, t, err := n.fun()
 	if err == nil {
-		n.Data = d
-		n.Timeout = t
+		n.data = d
+		n.timeout = t
 	}
 	return err
 }
