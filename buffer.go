@@ -2,55 +2,51 @@ package buffer
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/wzshiming/task"
+	"github.com/wzshiming/cache"
 )
 
 type Buffer struct {
-	Mut  sync.Mutex
-	Buff map[string]*Node
-	task *task.Task
+	buff cache.Cache
 }
 
 func NewBuffer() *Buffer {
 	return &Buffer{
-		Buff: map[string]*Node{},
-		task: task.NewTask(16),
+		buff: cache.NewMemory(),
 	}
 }
 
 // Del 删除缓存数据
-//  k:   缓存键
 func (b *Buffer) Del(k string) {
-	b.Mut.Lock()
-	defer b.Mut.Unlock()
-	delete(b.Buff, k)
+	b.buff.Delete(k)
 }
 
-// init 初始化缓存数据
-//  k:   缓存键
-func (b *Buffer) getNode(k string, f MakeFunc) *Node {
-	b.Mut.Lock()
-	defer b.Mut.Unlock()
-	if b.Buff[k] == nil {
-		t := NewNode(f)
-		t.Update()
-		b.Buff[k] = t
-		if !t.timeout.IsZero() {
-			b.task.Add(t.timeout, func() {
-				b.Del(k)
-			})
-		}
-		return t
+// Get 获取节点
+func (b *Buffer) Get(k string) *Node {
+	i := b.buff.Get(k)
+	n, ok := i.(*Node)
+	if ok {
+		return n
 	}
-	return b.Buff[k]
+	return nil
+}
+
+// getNode 初始化缓存数据
+func (b *Buffer) getNode(k string, f MakeFunc) *Node {
+	// 获取节点
+	nn := b.Get(k)
+	if nn != nil {
+		return nn
+	}
+
+	t := NewNode(f)
+	_, timeout, _ := t.Latest()
+	b.buff.Put(k, t, timeout.Sub(time.Now()))
+	return t
 }
 
 // Buf 缓存数据
-//  k:   缓存键
-//  f:   刷新缓存的闭包
 func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error) {
 	if f == nil {
 		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
