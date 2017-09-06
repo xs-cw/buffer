@@ -32,26 +32,19 @@ func (b *Buffer) Get(k string) *Node {
 	return nil
 }
 
-// getNode 初始化缓存数据
-func (b *Buffer) getNode(k string, f MakeFunc) *Node {
-	// 获取节点
-	nn := b.Get(k)
-	if nn != nil {
-		return nn
-	}
-
-	t := NewNode(f)
-	_, timeout, _ := t.Latest()
-	b.buff.Put(k, t, timeout.Sub(time.Now()))
-	return t
-}
-
 // Buf 缓存数据
 func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error) {
 	if f == nil {
 		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
 	}
-	val := b.getNode(k, f)
+	// 获取节点
+	nn := b.Get(k)
+	if nn != nil {
+		return nn.Value()
+	}
 
-	return val.Value()
+	nn = NewNode(f)
+	i, t, e = nn.Latest()
+	defer b.buff.Put(k, nn, t.Sub(time.Now()))
+	return i, t, e
 }
