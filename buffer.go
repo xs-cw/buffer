@@ -20,12 +20,12 @@ func NewBuffer() *Buffer {
 }
 
 // Del 删除缓存数据
-func (b *Buffer) del(k string) {
+func (b *Buffer) Del(k string) {
 	b.cache.Delete(k)
 }
 
 // Get 获取节点
-func (b *Buffer) get(k string) *Node {
+func (b *Buffer) Get(k string) *Node {
 	i := b.cache.Get(k)
 	n, ok := i.(*Node)
 	if ok {
@@ -41,7 +41,7 @@ func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error)
 		return nil, time.Time{}, fmt.Errorf("buff: 没有传入获取数据方法")
 	}
 
-	nn := b.get(k)
+	nn := b.Get(k)
 	// 获取节点
 	if nn != nil {
 		return nn.Latest()
@@ -50,7 +50,7 @@ func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error)
 	// 加锁加载
 	b.mut.Lock()
 	defer b.mut.Unlock()
-	if nn = b.get(k); nn == nil {
+	if nn = b.Get(k); nn == nil {
 		nn = newNode(f)
 		b.cache.Put(k, nn, 0)
 	}
