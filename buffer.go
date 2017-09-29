@@ -2,29 +2,31 @@ package buffer
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/wzshiming/cache"
 )
 
 type Buffer struct {
-	buff cache.Cache
+	cache *cache.Memory
+	mut   sync.Mutex
 }
 
 func NewBuffer() *Buffer {
 	return &Buffer{
-		buff: cache.NewMemory(),
+		cache: cache.NewMemory(),
 	}
 }
 
 // Del 删除缓存数据
-func (b *Buffer) Del(k string) {
-	b.buff.Delete(k)
+func (b *Buffer) del(k string) {
+	b.cache.Delete(k)
 }
 
 // Get 获取节点
-func (b *Buffer) Get(k string) *Node {
-	i := b.buff.Get(k)
+func (b *Buffer) get(k string) *Node {
+	i := b.cache.Get(k)
 	n, ok := i.(*Node)
 	if ok {
 		return n
@@ -34,17 +36,33 @@ func (b *Buffer) Get(k string) *Node {
 
 // Buf 缓存数据
 func (b *Buffer) Buf(k string, f MakeFunc) (i interface{}, t time.Time, e error) {
+
 	if f == nil {
-		return nil, time.Time{}, fmt.Errorf("没有传入获取数据方法")
-	}
-	// 获取节点
-	nn := b.Get(k)
-	if nn != nil {
-		return nn.Value()
+		return nil, time.Time{}, fmt.Errorf("buff: 没有传入获取数据方法")
 	}
 
-	nn = NewNode(f)
+	nn := b.get(k)
+	// 获取节点
+	if nn != nil {
+		return nn.Latest()
+	}
+
+	// 加锁加载
+	b.mut.Lock()
+	defer b.mut.Unlock()
+	if nn = b.get(k); nn == nil {
+		nn = newNode(f)
+		b.cache.Put(k, nn, 0)
+	}
+
 	i, t, e = nn.Latest()
-	defer b.buff.Put(k, nn, t.Sub(time.Now()))
+
+	if p := t.Sub(time.Now()); p > 0 {
+		b.cache.SetTimeout(k, p)
+	} else {
+		b.cache.Delete(k)
+	}
+
 	return i, t, e
+
 }

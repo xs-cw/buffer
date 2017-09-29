@@ -1,9 +1,8 @@
 package buffer
 
 import (
-	"time"
-
 	"sync"
+	"time"
 )
 
 type MakeFunc func() (interface{}, time.Time, error)
@@ -16,7 +15,7 @@ type Node struct {
 	mut     sync.RWMutex
 }
 
-func NewNode(f MakeFunc) *Node {
+func newNode(f MakeFunc) *Node {
 	n := &Node{
 		timeout: time.Unix(0, 0),
 		fun:     f,
@@ -31,29 +30,13 @@ func (n *Node) IsValid() bool {
 	return n.timeout.After(time.Now())
 }
 
-// Latest 最新的缓存数据
+// Latest 最新的缓存数据 返回 是否刷新数据
 func (n *Node) Latest() (interface{}, time.Time, error) {
-	if n.IsValid() {
-		return n.Value()
-	}
-	n.Update()
-	return n.Value()
-}
-
-// Value 数据
-func (n *Node) Value() (interface{}, time.Time, error) {
-	n.mut.RLock()
-	defer n.mut.RUnlock()
-	return n.data, n.timeout, n.err
-}
-
-// Update 更新数据
-func (n *Node) Update() {
 	n.mut.Lock()
 	defer n.mut.Unlock()
-	d, t, err := n.fun()
-	n.data = d
-	n.timeout = t
-	n.err = err
-	return
+	if n.timeout.After(time.Now()) {
+		return n.data, n.timeout, n.err
+	}
+	n.data, n.timeout, n.err = n.fun()
+	return n.data, n.timeout, n.err
 }
