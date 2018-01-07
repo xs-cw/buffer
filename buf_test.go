@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wzshiming/ffmt"
+	"gopkg.in/ffmt.v1"
 	"github.com/wzshiming/task"
 )
 
