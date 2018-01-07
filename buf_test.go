@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"gopkg.in/ffmt.v1"
-	"github.com/wzshiming/task"
+	"gopkg.in/wzshiming/task.v2"
 )
 
 func makeRand() string {
