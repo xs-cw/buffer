@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wzshiming/task"
 	"gopkg.in/ffmt.v1"
-	"gopkg.in/wzshiming/task.v2"
 )
 
 func makeRand() string {
